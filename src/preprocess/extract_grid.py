@@ -46,6 +46,14 @@ def extract_characters_from_grid(image_path, output_dir, grid_rows=10, grid_cols
     print(f"Extracted {extracted_count} potentials characters to {output_dir}")
     return extracted_count
 
+import argparse
+
 if __name__ == "__main__":
-    # Example usage hook
-    pass
+    parser = argparse.ArgumentParser(description="Extract characters from a handwriting grid.")
+    parser.add_argument("--image_path", type=str, required=True, help="Path to the scanned grid image.")
+    parser.add_argument("--output_dir", type=str, required=True, help="Directory to save the extracted character images.")
+    parser.add_argument("--grid_rows", type=int, default=10, help="Number of rows in the grid.")
+    parser.add_argument("--grid_cols", type=int, default=10, help="Number of columns in the grid.")
+    args = parser.parse_args()
+    
+    extract_characters_from_grid(args.image_path, args.output_dir, args.grid_rows, args.grid_cols)

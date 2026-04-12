@@ -26,5 +26,12 @@ def svg_dir_to_ttf(svg_dir, output_ttf_path="custom_font.ttf"):
     print(f"Executing FontForge compile step...")
     print(f"Font successfully saved to {output_ttf_path}")
 
+import argparse
+
 if __name__ == "__main__":
-    pass
+    parser = argparse.ArgumentParser(description="Build font from vector images.")
+    parser.add_argument("--svg_dir", type=str, required=True, help="Directory containing SVG files.")
+    parser.add_argument("--output_ttf", type=str, default="custom_font.ttf", help="Output path for the generated TrueType font.")
+    args = parser.parse_args()
+    
+    svg_dir_to_ttf(args.svg_dir, args.output_ttf)
