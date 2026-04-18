@@ -8,3 +8,5 @@ Pillow
 numpy
 fonttools
 svglib
+paddlepaddle
+paddleocr
