@@ -21,7 +21,7 @@ import re
 from collections import defaultdict
 
 # ---------------------------------------------------------------------------
-# Lazy-loaded singleton so we only pay the PaddleOCR init cost once.
+# Lazy-loaded singleton so we only pay the OCR init cost once.
 # ---------------------------------------------------------------------------
 _ocr_engine = None
 
@@ -31,12 +31,21 @@ def _get_ocr_engine():
     global _ocr_engine
     if _ocr_engine is None:
         from paddleocr import PaddleOCR
-        # det=False → we already have individual crops, just recognise.
-        # lang='chinese_cht' → Traditional Chinese (also handles Simplified).
-        _ocr_engine = PaddleOCR(
-            use_angle_cls=False,
-            lang='chinese_cht'
-        )
+        # Try the new PaddleOCR 3.4+ API first, fall back to legacy.
+        try:
+            _ocr_engine = PaddleOCR(
+                lang='chinese_cht',
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+            )
+        except TypeError:
+            # Older PaddleOCR (<3.4) uses different parameter names.
+            _ocr_engine = PaddleOCR(
+                lang='chinese_cht',
+                use_angle_cls=False,
+                show_log=False,
+            )
     return _ocr_engine
 
 
@@ -293,19 +302,41 @@ def recognise_character(crop_bgr, ocr_engine):
     Use PaddleOCR to recognise a single character from a cropped image.
     Returns (text, confidence).
     """
-    result = ocr_engine.ocr(crop_bgr, det=False, cls=False)
+    try:
+        result = ocr_engine.ocr(crop_bgr, det=False, cls=False)
+    except TypeError:
+        # New PaddleOCR 3.4+ may not accept det/cls kwargs in .ocr()
+        result = ocr_engine.ocr(crop_bgr)
 
     if not result or not result[0]:
         return None, 0.0
 
-    # result structure: [[('text', confidence), ...]]
-    top = result[0][0]
-    text = top[0].strip()
-    conf = float(top[1])
+    # Handle both old and new PaddleOCR result formats:
+    #   Old: [[('text', confidence), ...]]
+    #   New: [{'rec_text': 'X', 'rec_score': 0.99, ...}, ...]
+    #         or [[bbox, ('text', confidence)], ...]
+    top = result[0]
+    if isinstance(top, dict):
+        # New dict-based format (PaddleOCR 3.4+)
+        text = top.get('rec_text', top.get('text', '')).strip()
+        conf = float(top.get('rec_score', top.get('score', 0.0)))
+    elif isinstance(top, (list, tuple)) and len(top) == 2:
+        # Could be [bbox, ('text', conf)] or ('text', conf)
+        inner = top[1] if isinstance(top[0], (list, np.ndarray)) else top
+        if isinstance(inner, (list, tuple)) and len(inner) == 2:
+            text = str(inner[0]).strip()
+            conf = float(inner[1])
+        else:
+            text = str(inner).strip()
+            conf = 0.5
+    else:
+        # Last resort: try to unpack whatever we got
+        try:
+            text = str(top[0]).strip()
+            conf = float(top[1]) if len(top) > 1 else 0.5
+        except (TypeError, IndexError, KeyError):
+            return None, 0.0
 
-    # We only want single-character results.  If the recogniser returns
-    # multiple characters we still take the first one (most likely case
-    # is that the crop captured a single char but the model hedges).
     if len(text) == 0:
         return None, 0.0
 
