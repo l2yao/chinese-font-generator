@@ -7,8 +7,7 @@ This repository provides an automated pipeline for **Few-Shot Chinese Font Gener
 The project pipeline stitches together three stages:
 
 1. **Preprocess (`src/preprocess/extract_grid.py`)** 
-   - Uses OpenCV to parse a scanned page of grid-paper.
-   - Automatically crops each character into individual square images.
+   - Uses PaddleOCR to automatically detect, crop, and label each handwritten character from a scanned page into individual images.
 2. **Engine (`src/engine/run_zi2zi.py`)** 
    - Acts as a wrapper over the custom **zi2zi-JiT** architecture.
    - Automatically utilizes `lora_single_gpu_finetune_jit.py` to efficiently teach the Diffusion Transformer your style using limited VRAM.

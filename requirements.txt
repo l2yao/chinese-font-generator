@@ -3,9 +3,7 @@ torchvision
 diffusers
 transformers
 accelerate
-opencv-python
 Pillow
-numpy
 fonttools
 svglib
 paddlepaddle
