@@ -67,9 +67,13 @@ def extract_characters(image_path, output_dir):
                     out_path = os.path.join(output_dir, f'{single_char}.png')
                     
                     # Crop and save individual character
-                    cropped_char = image.crop(sub_box)
-                    cropped_char.save(out_path)
-                    print(f"Saved {out_path}")
+                    cropped_char = image.crop((x0, y0, x1, y1))
+
+                    # Resize to 256x256 as required by zi2zi-JiT
+                    resized_char = cropped_char.resize((256, 256), Image.Resampling.LANCZOS)
+                    resized_char.save(out_path)
+                    print(f"Saved {out_path} (resized to 256x256)")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract and label individual Chinese characters.")
