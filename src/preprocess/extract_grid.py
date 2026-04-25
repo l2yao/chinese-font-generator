@@ -36,16 +36,40 @@ def extract_characters(image_path, output_dir):
             # res.save_to_json("output")
             
             for ind in range(len(res["rec_texts"])):
-                char = res["rec_texts"][ind]
+                text = res["rec_texts"][ind]
                 box = res["rec_boxes"][ind]
                 
-                # We overwrite any existing files with the same character name
-                out_path = os.path.join(output_dir, f'{char}.png')
+                # Check if it's a multi-character segment
+                n_chars = len(text)
+                if n_chars == 0:
+                    continue
+                    
+                x0, y0, x1, y1 = box
+                width = x1 - x0
+                height = y1 - y0
                 
-                # Crop and save individual character
-                cropped_char = image.crop(box)
-                cropped_char.save(out_path)
-                print(f"Saved {out_path}")
+                for i in range(n_chars):
+                    single_char = text[i]
+                    
+                    if n_chars == 1:
+                        sub_box = box
+                    else:
+                        if width > height:
+                            # Horizontal text line, split along width
+                            step = width / n_chars
+                            sub_box = (x0 + i * step, y0, x0 + (i + 1) * step, y1)
+                        else:
+                            # Vertical text line, split along height
+                            step = height / n_chars
+                            sub_box = (x0, y0 + i * step, x1, y0 + (i + 1) * step)
+                    
+                    # Overwrite any existing files with the same character name
+                    out_path = os.path.join(output_dir, f'{single_char}.png')
+                    
+                    # Crop and save individual character
+                    cropped_char = image.crop(sub_box)
+                    cropped_char.save(out_path)
+                    print(f"Saved {out_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract and label individual Chinese characters.")
